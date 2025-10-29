@@ -1,0 +1,2 @@
+# JossueUchiha
+Practicas para Konoha
