@@ -81,12 +81,20 @@ const Personajes = () => {
   const handleSubmitCreate = async (formData) => {
     try {
       await createPersonaje(formData);
-      // Forzar actualización completa
+      
+      // Cerrar modal primero
+      setShowCreateModal(false);
+      
+      // Luego actualizar datos y mostrar alerta
       await fetchPersonajes();
       await fetchAldeas();
-      setShowCreateModal(false);
       refreshStats();
-      showSuccess('¡Creado!', 'El personaje ha sido creado correctamente.');
+      
+      // Mostrar alerta después de un pequeño delay
+      setTimeout(() => {
+        showSuccess('¡Creado!', 'El personaje ha sido creado correctamente.');
+      }, 100);
+      
     } catch (error) {
       showError('Error', 'No se pudo crear el personaje. Inténtalo de nuevo.');
     }
@@ -95,13 +103,21 @@ const Personajes = () => {
   const handleSubmitEdit = async (formData) => {
     try {
       await updatePersonaje(selectedPersonaje.id, formData);
-      // Forzar actualización completa
-      await fetchPersonajes();
-      await fetchAldeas();
+      
+      // Cerrar modal primero
       setShowEditModal(false);
       setSelectedPersonaje(null);
+      
+      // Luego actualizar datos y mostrar alerta
+      await fetchPersonajes();
+      await fetchAldeas();
       refreshStats();
-      showSuccess('¡Actualizado!', 'El personaje ha sido actualizado correctamente.');
+      
+      // Mostrar alerta después de un pequeño delay
+      setTimeout(() => {
+        showSuccess('¡Actualizado!', 'El personaje ha sido actualizado correctamente.');
+      }, 100);
+      
     } catch (error) {
       showError('Error', 'No se pudo actualizar el personaje. Inténtalo de nuevo.');
     }
