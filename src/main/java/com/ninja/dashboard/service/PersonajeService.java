@@ -2,7 +2,11 @@ package com.ninja.dashboard.service;
 
 import com.ninja.dashboard.dto.PersonajeDto;
 import com.ninja.dashboard.exception.ResourceNotFoundException;
+import com.ninja.dashboard.model.Aldea;
+import com.ninja.dashboard.model.Clan;
 import com.ninja.dashboard.model.Personaje;
+import com.ninja.dashboard.repository.AldeaRepository;
+import com.ninja.dashboard.repository.ClanRepository;
 import com.ninja.dashboard.repository.PersonajeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,10 +24,16 @@ import java.util.stream.Collectors;
 public class PersonajeService {
     
     private final PersonajeRepository personajeRepository;
+    private final AldeaRepository aldeaRepository;
+    private final ClanRepository clanRepository;
     
     @Autowired
-    public PersonajeService(PersonajeRepository personajeRepository) {
+    public PersonajeService(PersonajeRepository personajeRepository, 
+                           AldeaRepository aldeaRepository,
+                           ClanRepository clanRepository) {
         this.personajeRepository = personajeRepository;
+        this.aldeaRepository = aldeaRepository;
+        this.clanRepository = clanRepository;
     }
     
     @Transactional(readOnly = true)
@@ -75,12 +85,17 @@ public class PersonajeService {
     }
     
     public PersonajeDto update(UUID id, PersonajeDto personajeDto) {
-        Personaje existingPersonaje = personajeRepository.findById(id)
+        Personaje existingPersonaje = personajeRepository.findByIdWithAldeaAndClan(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Personaje", "id", id));
         
         updateEntityFromDto(existingPersonaje, personajeDto);
         Personaje updatedPersonaje = personajeRepository.save(existingPersonaje);
-        return convertToDto(updatedPersonaje);
+        
+        // Recargar la entidad con las relaciones para asegurar que el DTO tenga toda la información
+        Personaje reloadedPersonaje = personajeRepository.findByIdWithAldeaAndClan(updatedPersonaje.getId())
+                .orElse(updatedPersonaje);
+        
+        return convertToDto(reloadedPersonaje);
     }
     
     public void deleteById(UUID id) {
@@ -137,6 +152,20 @@ public class PersonajeService {
         personaje.setDescripcion(dto.getDescripcion());
         personaje.setImagenUrl(dto.getImagenUrl());
         
+        // Manejar aldea
+        if (dto.getAldeaId() != null) {
+            Aldea aldea = aldeaRepository.findById(dto.getAldeaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Aldea", "id", dto.getAldeaId()));
+            personaje.setAldea(aldea);
+        }
+        
+        // Manejar clan
+        if (dto.getClanId() != null) {
+            Clan clan = clanRepository.findById(dto.getClanId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Clan", "id", dto.getClanId()));
+            personaje.setClan(clan);
+        }
+        
         return personaje;
     }
     
@@ -151,5 +180,23 @@ public class PersonajeService {
         personaje.setVelocidad(dto.getVelocidad());
         personaje.setDescripcion(dto.getDescripcion());
         personaje.setImagenUrl(dto.getImagenUrl());
+        
+        // Manejar aldea
+        if (dto.getAldeaId() != null) {
+            Aldea aldea = aldeaRepository.findById(dto.getAldeaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Aldea", "id", dto.getAldeaId()));
+            personaje.setAldea(aldea);
+        } else {
+            personaje.setAldea(null);
+        }
+        
+        // Manejar clan
+        if (dto.getClanId() != null) {
+            Clan clan = clanRepository.findById(dto.getClanId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Clan", "id", dto.getClanId()));
+            personaje.setClan(clan);
+        } else {
+            personaje.setClan(null);
+        }
     }
 }
