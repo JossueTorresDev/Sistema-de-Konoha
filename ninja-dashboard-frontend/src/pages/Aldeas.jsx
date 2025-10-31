@@ -5,6 +5,7 @@ import { useAlert } from '../hooks/useAlert';
 import LoadingSpinner from '../components/LoadingSpinner';
 import AlertContainer from '../components/AlertContainer';
 import Modal from '../components/Modal';
+import AldeaForm from '../components/AldeaForm';
 
 const Aldeas = () => {
   const [aldeas, setAldeas] = useState([]);
@@ -13,6 +14,8 @@ const Aldeas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAldea, setSelectedAldea] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const { alerts, removeAlert, showSuccess, showError, showConfirm, showInfo } = useAlert();
 
   useEffect(() => {
@@ -57,11 +60,41 @@ const Aldeas = () => {
   };
 
   const handleEdit = (aldea) => {
-    showInfo('Función en desarrollo', 'La funcionalidad de edición estará disponible próximamente.');
+    setSelectedAldea(aldea);
+    setShowEditModal(true);
+  };
+
+  const handleCreate = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (formData) => {
+    try {
+      await aldeasAPI.create(formData);
+      await fetchAldeas();
+      setShowCreateModal(false);
+      showSuccess('¡Creado!', 'La aldea ha sido creada correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo crear la aldea. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleSubmitEdit = async (formData) => {
+    try {
+      await aldeasAPI.update(selectedAldea.id, formData);
+      await fetchAldeas();
+      setShowEditModal(false);
+      setSelectedAldea(null);
+      showSuccess('¡Actualizado!', 'La aldea ha sido actualizada correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo actualizar la aldea. Inténtalo de nuevo.');
+    }
   };
 
   const closeModal = () => {
     setShowDetailsModal(false);
+    setShowEditModal(false);
+    setShowCreateModal(false);
     setSelectedAldea(null);
   };
 
@@ -95,7 +128,10 @@ const Aldeas = () => {
           <h1 className="text-3xl font-bold text-gray-900">Aldeas</h1>
           <p className="text-gray-600 mt-2">Gestiona las aldeas ninja</p>
         </div>
-        <button className="btn-primary mt-4 sm:mt-0 inline-flex items-center">
+        <button 
+          onClick={handleCreate}
+          className="btn-primary mt-4 sm:mt-0 inline-flex items-center"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nueva Aldea
         </button>
@@ -303,6 +339,33 @@ const Aldeas = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Crear */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={closeModal}
+        title="Crear Nueva Aldea"
+        size="md"
+      >
+        <AldeaForm
+          onSubmit={handleSubmitCreate}
+          onCancel={closeModal}
+        />
+      </Modal>
+
+      {/* Modal de Editar */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={closeModal}
+        title="Editar Aldea"
+        size="md"
+      >
+        <AldeaForm
+          aldea={selectedAldea}
+          onSubmit={handleSubmitEdit}
+          onCancel={closeModal}
+        />
       </Modal>
 
       {/* Contenedor de Alertas */}

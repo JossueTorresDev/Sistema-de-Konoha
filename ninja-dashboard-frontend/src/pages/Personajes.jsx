@@ -1,20 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Eye, Users, Award, TrendingUp, MapPin, Star, Zap } from 'lucide-react';
 import { usePersonajes } from '../hooks/usePersonajes';
 import { useAlert } from '../hooks/useAlert';
+import { aldeasAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatCard from '../components/StatCard';
 import AlertContainer from '../components/AlertContainer';
 import Modal from '../components/Modal';
+import PersonajeForm from '../components/PersonajeForm';
 
 const Personajes = () => {
-  const { personajes, loading, error, deletePersonaje } = usePersonajes();
+  const { personajes, loading, error, deletePersonaje, createPersonaje, updatePersonaje } = usePersonajes();
   const { alerts, removeAlert, showSuccess, showError, showConfirm, showInfo } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRango, setFilterRango] = useState('');
   const [selectedPersonaje, setSelectedPersonaje] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [aldeas, setAldeas] = useState([]);
+
+  useEffect(() => {
+    fetchAldeas();
+  }, []);
+
+  const fetchAldeas = async () => {
+    try {
+      const response = await aldeasAPI.getStats();
+      setAldeas(response.data);
+    } catch (error) {
+      console.error('Error al cargar aldeas:', error);
+    }
+  };
 
   const filteredPersonajes = personajes.filter(personaje => {
     const matchesSearch = personaje.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,12 +68,37 @@ const Personajes = () => {
   const handleEdit = (personaje) => {
     setSelectedPersonaje(personaje);
     setShowEditModal(true);
-    showInfo('Función en desarrollo', 'La funcionalidad de edición estará disponible próximamente.');
+  };
+
+  const handleCreate = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (formData) => {
+    try {
+      await createPersonaje(formData);
+      setShowCreateModal(false);
+      showSuccess('¡Creado!', 'El personaje ha sido creado correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo crear el personaje. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleSubmitEdit = async (formData) => {
+    try {
+      await updatePersonaje(selectedPersonaje.id, formData);
+      setShowEditModal(false);
+      setSelectedPersonaje(null);
+      showSuccess('¡Actualizado!', 'El personaje ha sido actualizado correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo actualizar el personaje. Inténtalo de nuevo.');
+    }
   };
 
   const closeModals = () => {
     setShowDetailsModal(false);
     setShowEditModal(false);
+    setShowCreateModal(false);
     setSelectedPersonaje(null);
   };
 
@@ -85,7 +127,10 @@ const Personajes = () => {
           <h1 className="text-4xl font-bold gradient-text mb-2">Personajes Ninja</h1>
           <p className="text-gray-600 text-lg">Gestiona los guerreros del mundo shinobi</p>
         </div>
-        <button className="btn-primary mt-6 sm:mt-0 inline-flex items-center shadow-xl">
+        <button 
+          onClick={handleCreate}
+          className="btn-primary mt-6 sm:mt-0 inline-flex items-center shadow-xl"
+        >
           <Plus className="h-5 w-5 mr-2" />
           Nuevo Personaje
         </button>
@@ -376,6 +421,35 @@ const Personajes = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Crear */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        title="Crear Nuevo Personaje"
+        size="lg"
+      >
+        <PersonajeForm
+          onSubmit={handleSubmitCreate}
+          onCancel={closeModals}
+          aldeas={aldeas}
+        />
+      </Modal>
+
+      {/* Modal de Editar */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        title="Editar Personaje"
+        size="lg"
+      >
+        <PersonajeForm
+          personaje={selectedPersonaje}
+          onSubmit={handleSubmitEdit}
+          onCancel={closeModals}
+          aldeas={aldeas}
+        />
       </Modal>
 
       {/* Contenedor de Alertas */}

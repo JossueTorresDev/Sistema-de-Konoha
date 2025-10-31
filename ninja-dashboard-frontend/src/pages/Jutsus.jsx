@@ -5,6 +5,7 @@ import { useAlert } from '../hooks/useAlert';
 import LoadingSpinner from '../components/LoadingSpinner';
 import AlertContainer from '../components/AlertContainer';
 import Modal from '../components/Modal';
+import JutsuForm from '../components/JutsuForm';
 
 const Jutsus = () => {
   const [jutsus, setJutsus] = useState([]);
@@ -15,6 +16,8 @@ const Jutsus = () => {
   const [filterTipo, setFilterTipo] = useState('');
   const [selectedJutsu, setSelectedJutsu] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const { alerts, removeAlert, showSuccess, showError, showConfirm, showInfo } = useAlert();
 
   useEffect(() => {
@@ -63,11 +66,41 @@ const Jutsus = () => {
   };
 
   const handleEdit = (jutsu) => {
-    showInfo('Función en desarrollo', 'La funcionalidad de edición estará disponible próximamente.');
+    setSelectedJutsu(jutsu);
+    setShowEditModal(true);
+  };
+
+  const handleCreate = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (formData) => {
+    try {
+      await jutsusAPI.create(formData);
+      await fetchData();
+      setShowCreateModal(false);
+      showSuccess('¡Creado!', 'El jutsu ha sido creado correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo crear el jutsu. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleSubmitEdit = async (formData) => {
+    try {
+      await jutsusAPI.update(selectedJutsu.id, formData);
+      await fetchData();
+      setShowEditModal(false);
+      setSelectedJutsu(null);
+      showSuccess('¡Actualizado!', 'El jutsu ha sido actualizado correctamente.');
+    } catch (error) {
+      showError('Error', 'No se pudo actualizar el jutsu. Inténtalo de nuevo.');
+    }
   };
 
   const closeModal = () => {
     setShowDetailsModal(false);
+    setShowEditModal(false);
+    setShowCreateModal(false);
     setSelectedJutsu(null);
   };
 
@@ -123,7 +156,10 @@ const Jutsus = () => {
           <h1 className="text-3xl font-bold text-gray-900">Jutsus</h1>
           <p className="text-gray-600 mt-2">Gestiona las técnicas ninja</p>
         </div>
-        <button className="btn-primary mt-4 sm:mt-0 inline-flex items-center">
+        <button 
+          onClick={handleCreate}
+          className="btn-primary mt-4 sm:mt-0 inline-flex items-center"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nuevo Jutsu
         </button>
@@ -354,6 +390,33 @@ const Jutsus = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Crear */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={closeModal}
+        title="Crear Nuevo Jutsu"
+        size="md"
+      >
+        <JutsuForm
+          onSubmit={handleSubmitCreate}
+          onCancel={closeModal}
+        />
+      </Modal>
+
+      {/* Modal de Editar */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={closeModal}
+        title="Editar Jutsu"
+        size="md"
+      >
+        <JutsuForm
+          jutsu={selectedJutsu}
+          onSubmit={handleSubmitEdit}
+          onCancel={closeModal}
+        />
       </Modal>
 
       {/* Contenedor de Alertas */}
