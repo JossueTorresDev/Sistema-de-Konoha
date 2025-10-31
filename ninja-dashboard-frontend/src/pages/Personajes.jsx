@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Eye, Users, Award, TrendingUp, MapPin, Star, Zap } from 'lucide-react';
 import { usePersonajes } from '../hooks/usePersonajes';
+import { useStats } from '../hooks/useStats';
 import { useAlert } from '../hooks/useAlert';
 import { aldeasAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -11,6 +12,7 @@ import PersonajeForm from '../components/PersonajeForm';
 
 const Personajes = () => {
   const { personajes, loading, error, deletePersonaje, createPersonaje, updatePersonaje } = usePersonajes();
+  const { stats, refreshStats } = useStats();
   const { alerts, removeAlert, showSuccess, showError, showConfirm, showInfo } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRango, setFilterRango] = useState('');
@@ -49,6 +51,7 @@ const Personajes = () => {
       async () => {
         try {
           await deletePersonaje(id);
+          refreshStats(); // Actualizar estadísticas
           showSuccess('¡Eliminado!', `${nombre} ha sido eliminado correctamente.`);
         } catch (error) {
           showError('Error', 'No se pudo eliminar el personaje. Inténtalo de nuevo.');
@@ -78,6 +81,7 @@ const Personajes = () => {
     try {
       await createPersonaje(formData);
       setShowCreateModal(false);
+      refreshStats(); // Actualizar estadísticas
       showSuccess('¡Creado!', 'El personaje ha sido creado correctamente.');
     } catch (error) {
       showError('Error', 'No se pudo crear el personaje. Inténtalo de nuevo.');
@@ -89,6 +93,7 @@ const Personajes = () => {
       await updatePersonaje(selectedPersonaje.id, formData);
       setShowEditModal(false);
       setSelectedPersonaje(null);
+      refreshStats(); // Actualizar estadísticas
       showSuccess('¡Actualizado!', 'El personaje ha sido actualizado correctamente.');
     } catch (error) {
       showError('Error', 'No se pudo actualizar el personaje. Inténtalo de nuevo.');
@@ -314,13 +319,11 @@ const Personajes = () => {
         />
         <StatCard
           title="Power Level Promedio"
-          value={personajes.length > 0 ? 
-            (personajes.reduce((sum, p) => sum + (p.powerLevel || 0), 0) / personajes.length).toFixed(1) : 
-            '0.0'
-          }
+          value={stats?.promedioPowerLevel || '0.0'}
           icon={TrendingUp}
           color="green"
-          trend="↗ Mejorando"
+          change={{ positive: false, value: 2 }}
+          trend="↘ Bajando"
         />
       </div>
 

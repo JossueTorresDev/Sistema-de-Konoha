@@ -1,10 +1,16 @@
 import { Users, MapPin, Zap, TrendingUp, Crown, Award, Target, Activity } from 'lucide-react';
 import { useDashboard } from '../hooks/useDashboard';
+import { useStats } from '../hooks/useStats';
 import StatCard from '../components/StatCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard = () => {
-  const { stats, loading, error } = useDashboard();
+  const { stats: dashboardStats, loading: dashboardLoading, error: dashboardError } = useDashboard();
+  const { stats: calculatedStats, loading: statsLoading, error: statsError } = useStats();
+  
+  const loading = dashboardLoading || statsLoading;
+  const error = dashboardError || statsError;
+  const stats = dashboardStats;
 
   if (loading) {
     return (
@@ -89,7 +95,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Power Level Promedio"
-          value={stats?.promedioPowerLevel || 0}
+          value={calculatedStats?.promedioPowerLevel || 0}
           icon={TrendingUp}
           color="green"
           change={{ positive: false, value: 2 }}
