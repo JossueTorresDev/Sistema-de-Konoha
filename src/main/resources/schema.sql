@@ -113,3 +113,53 @@ CREATE INDEX idx_personaje_aldea ON personaje (id_aldea);
 CREATE INDEX idx_personaje_clan ON personaje (id_clan);
 CREATE INDEX idx_jutsu_tipo ON jutsu (tipo);
 CREATE INDEX idx_mision_fecha ON mision (fecha_inicio, fecha_fin);
+
+-- 9) Vistas y materialized views para dashboard
+-- Vista simple de personaje con estadísticas "power_level"
+CREATE VIEW vw_personaje_power AS
+SELECT
+    p.id,
+    p.nombre,
+    p.alias,
+    p.rango,
+    p.id_aldea,
+    p.id_clan,
+    p.imagen_url,
+    (p.chakra * 0.4 + p.inteligencia * 0.25 + p.fuerza * 0.2 + p.velocidad * 0.15) AS power_level
+FROM personaje p;
+
+-- Materialized view: top 10 personajes por power_level
+CREATE MATERIALIZED VIEW mv_top_personajes AS
+SELECT * FROM vw_personaje_power
+ORDER BY power_level DESC
+LIMIT 10;
+
+-- Refresh helper (se puede programar en cron/external job)
+CREATE OR REPLACE FUNCTION refresh_mv_top_personajes()
+RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_top_personajes;
+EXCEPTION WHEN others THEN
+    -- si falla el concurrent refresh (tiny DBs), fallback
+    REFRESH MATERIALIZED VIEW mv_top_personajes;
+END;
+$$;
+
+-- 10) Funciones útiles
+-- Función para añadir jutsu a un personaje (evita duplicados)
+CREATE OR REPLACE FUNCTION fn_asignar_jutsu(_personaje UUID, _jutsu UUID, _dominio INTEGER DEFAULT 1)
+RETURNS VOID LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO personaje_jutsu (id_personaje, id_jutsu, dominio, aprendido_en)
+    VALUES (_personaje, _jutsu, _dominio, current_date)
+    ON CONFLICT (id_personaje, id_jutsu) DO UPDATE
+    SET dominio = GREATEST(personaje_jutsu.dominio, EXCLUDED.dominio);
+END;
+$$;
+
+-- Función para calcular "score" de un personaje (retorna numeric)
+CREATE OR REPLACE FUNCTION fn_calcular_score_personaje(_id UUID)
+RETURNS numeric LANGUAGE sql AS $$
+SELECT (p.chakra * 0.4 + p.inteligencia * 0.25 + p.fuerza * 0.2 + p.velocidad * 0.15)
+FROM personaje p WHERE p.id = _id;
+$$;
