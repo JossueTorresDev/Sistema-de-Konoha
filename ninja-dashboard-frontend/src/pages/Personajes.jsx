@@ -11,7 +11,7 @@ import Modal from '../components/Modal';
 import PersonajeForm from '../components/PersonajeForm';
 
 const Personajes = () => {
-  const { personajes, loading, error, deletePersonaje, createPersonaje, updatePersonaje } = usePersonajes();
+  const { personajes, loading, error, deletePersonaje, createPersonaje, updatePersonaje, fetchPersonajes } = usePersonajes();
   const { stats, refreshStats } = useStats();
   const { alerts, removeAlert, showSuccess, showError, showConfirm, showInfo } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +51,7 @@ const Personajes = () => {
       async () => {
         try {
           await deletePersonaje(id);
+          await fetchPersonajes(); // Refrescar la lista completa
           refreshStats(); // Actualizar estadísticas
           showSuccess('¡Eliminado!', `${nombre} ha sido eliminado correctamente.`);
         } catch (error) {
@@ -80,8 +81,11 @@ const Personajes = () => {
   const handleSubmitCreate = async (formData) => {
     try {
       await createPersonaje(formData);
+      // Forzar actualización completa
+      await fetchPersonajes();
+      await fetchAldeas();
       setShowCreateModal(false);
-      refreshStats(); // Actualizar estadísticas
+      refreshStats();
       showSuccess('¡Creado!', 'El personaje ha sido creado correctamente.');
     } catch (error) {
       showError('Error', 'No se pudo crear el personaje. Inténtalo de nuevo.');
@@ -91,9 +95,12 @@ const Personajes = () => {
   const handleSubmitEdit = async (formData) => {
     try {
       await updatePersonaje(selectedPersonaje.id, formData);
+      // Forzar actualización completa
+      await fetchPersonajes();
+      await fetchAldeas();
       setShowEditModal(false);
       setSelectedPersonaje(null);
-      refreshStats(); // Actualizar estadísticas
+      refreshStats();
       showSuccess('¡Actualizado!', 'El personaje ha sido actualizado correctamente.');
     } catch (error) {
       showError('Error', 'No se pudo actualizar el personaje. Inténtalo de nuevo.');
@@ -105,6 +112,19 @@ const Personajes = () => {
     setShowEditModal(false);
     setShowCreateModal(false);
     setSelectedPersonaje(null);
+  };
+
+  // Función para obtener el nombre de la aldea
+  const getAldeaNombre = (personaje) => {
+    // Si ya tiene aldeaNombre, usarlo
+    if (personaje.aldeaNombre) return personaje.aldeaNombre;
+    
+    // Si no tiene aldeaId, mostrar "Sin aldea"
+    if (!personaje.aldeaId) return 'Sin aldea';
+    
+    // Buscar el nombre de la aldea en la lista local
+    const aldea = aldeas.find(a => String(a.id) === String(personaje.aldeaId));
+    return aldea ? aldea.nombre : 'Sin aldea';
   };
 
   if (loading) {
@@ -224,7 +244,7 @@ const Personajes = () => {
                     <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-900 font-medium">
-                        {personaje.aldeaNombre || 'Sin aldea'}
+                        {getAldeaNombre(personaje)}
                       </span>
                     </div>
                   </td>
@@ -359,7 +379,7 @@ const Personajes = () => {
                     <span className="text-sm font-medium text-gray-500">Aldea:</span>
                     <p className="text-gray-900 flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {selectedPersonaje.aldeaNombre || 'Sin aldea'}
+                      {getAldeaNombre(selectedPersonaje)}
                     </p>
                   </div>
                 </div>

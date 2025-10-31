@@ -37,8 +37,17 @@ export const usePersonajes = () => {
   const updatePersonaje = async (id, personaje) => {
     try {
       const response = await personajesAPI.update(id, personaje);
-      setPersonajes(prev => prev.map(p => p.id === id ? response.data : p));
-      return response.data;
+      
+      // Si el backend no devuelve aldeaId, mantener el que enviamos
+      const updatedPersonaje = {
+        ...response.data,
+        aldeaId: response.data.aldeaId || personaje.aldeaId,
+        // Si no hay aldeaNombre pero sí aldeaId, lo dejamos null para que lo busque la función getAldeaNombre
+        aldeaNombre: response.data.aldeaNombre || null
+      };
+      
+      setPersonajes(prev => prev.map(p => p.id === id ? updatedPersonaje : p));
+      return updatedPersonaje;
     } catch (err) {
       setError(err.message);
       throw err;
